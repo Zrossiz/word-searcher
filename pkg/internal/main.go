@@ -18,7 +18,7 @@ func main() {
 			return
 		}
 
-		s := searcher.Searcher{FS: os.DirFS(".")}
+		s := searcher.Searcher{FS: os.DirFS("./examples")}
 
 		files, err := s.Search(searchValue)
 		if err != nil {
@@ -29,6 +29,6 @@ func main() {
 		response.SendData(w, http.StatusOK, files)
 	})
 
-	fmt.Printf("Server started on port: 8080")
+	fmt.Println("Server started on port: 8080")
 	http.ListenAndServe(":8080", nil)
 }
