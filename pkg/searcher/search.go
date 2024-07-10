@@ -6,6 +6,7 @@ import (
 	"io/fs"
 	"os"
 	"strings"
+	"sync"
 	"word-search-in-files/pkg/internal/dir"
 )
 
@@ -13,26 +14,30 @@ type Searcher struct {
 	FS fs.FS
 }
 
-func (s *Searcher) Search(word string) (files []string, err error) {
+func (s *Searcher) Search(word string) ([]string, error) {
 	osFiles, err := dir.FilesFS(s.FS, ".")
-	var containWordFiles []string
-
 	if err != nil {
 		return nil, err
 	}
 
+	var wg sync.WaitGroup
+	var containWordFiles []string
 	for _, file := range osFiles {
-		filePath := fmt.Sprintf("./examples/%s", file)
-		contain := isContainsWord(filePath, word)
-		if contain {
-			containWordFiles = append(containWordFiles, file)
-		}
+		wg.Add(1)
+		go func(file string) {
+			defer wg.Done()
+			if containsWord(fmt.Sprintf("./examples/%s", file), word) {
+				containWordFiles = append(containWordFiles, file)
+			}
+		}(file)
 	}
+
+	wg.Wait()
 
 	return containWordFiles, nil
 }
 
-func isContainsWord(filePath string, word string) bool {
+func containsWord(filePath string, word string) bool {
 	file, err := os.Open(filePath)
 	if err != nil {
 		return false
@@ -41,13 +46,8 @@ func isContainsWord(filePath string, word string) bool {
 
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
-		line := scanner.Text()
-		fileWords := strings.Fields(line)
-
-		for _, fileWord := range fileWords {
-			if word == fileWord {
-				return true
-			}
+		if strings.Contains(scanner.Text(), word) {
+			return true
 		}
 	}
 	return false
